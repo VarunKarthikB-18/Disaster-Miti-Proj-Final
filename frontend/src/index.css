@@ -1,171 +1,52 @@
 @import "tailwindcss";
 
-@theme {
-  --color-safe: #2ecc71;
-  --color-affected: #f1c40f;
-  --color-burning: #e74c3c;
-  --color-destroyed: #34495e;
-  
-  --color-bg-main: #0a0a0a;
-  --color-panel: rgba(20, 20, 20, 0.6);
-  --color-border: rgba(255, 255, 255, 0.1);
-  --color-text: #ededed;
-}
-
 :root {
   font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   color-scheme: dark;
-  background-color: var(--color-bg-main);
-  color: var(--color-text);
   margin: 0;
   padding: 0;
-  overflow: hidden; /* App is full screen */
 }
 
 body {
   margin: 0;
   padding: 0;
-}
-
-/* Animated Mesh Background */
-.bg-mesh {
-  background-color: #000000;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(231, 76, 60, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(46, 204, 113, 0.05) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(241, 196, 15, 0.1) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, rgba(52, 73, 94, 0.2) 0px, transparent 50%);
-  animation: mesh-breathe 10s ease-in-out infinite alternate;
-}
-
-@keyframes mesh-breathe {
-  0% { filter: hue-rotate(0deg) brightness(1); }
-  100% { filter: hue-rotate(15deg) brightness(1.2); }
-}
-
-/* Glassmorphism utilities */
-.glass {
-  background: rgba(15, 15, 15, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-}
-
-.glass-card {
-  background: rgba(20, 20, 20, 0.6);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.6);
-}
-
-/* Cell animations for Dot Matrix */
-.cell {
-  border-radius: 50%; /* Make them dots */
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.cell:hover {
-  transform: scale(1.6);
-  z-index: 20;
-}
-
-/* Glowing effects for states */
-.cell-safe {
-  background-color: rgba(46, 204, 113, 0.15);
-  transform: scale(0.6); /* Make safe dots smaller */
-}
-.cell-safe:hover {
-  background-color: rgba(46, 204, 113, 0.6);
-  box-shadow: 0 0 15px rgba(46, 204, 113, 0.5);
-  transform: scale(1.4);
-}
-
-.cell-affected {
-  background-color: #f1c40f;
-  box-shadow: 0 0 12px rgba(241, 196, 15, 0.5);
-  transform: scale(0.9);
-}
-.cell-affected:hover {
-  background-color: #f39c12;
-  box-shadow: 0 0 25px rgba(241, 196, 15, 0.9);
-}
-
-.cell-burning {
-  background: #ff4757;
-  box-shadow: 0 0 15px rgba(255, 71, 87, 0.8), 0 0 30px rgba(255, 71, 87, 0.4);
-  transform: scale(1.1);
-  animation: pulse-fire 0.8s infinite alternate;
-}
-.cell-burning:hover {
-  box-shadow: 0 0 30px rgba(255, 71, 87, 1), 0 0 50px rgba(255, 71, 87, 0.6);
-  background: #ff6b81;
-}
-
-.cell-destroyed {
-  background-color: #2f3640;
-  transform: scale(0.4);
-  opacity: 0.5;
-}
-
-@keyframes pulse-fire {
-  0% { transform: scale(1.1); box-shadow: 0 0 15px rgba(255, 71, 87, 0.8); }
-  100% { transform: scale(1.25); box-shadow: 0 0 25px rgba(255, 71, 87, 1); }
-}
-
-@keyframes pulse-fire {
-  0% { box-shadow: 0 0 8px rgba(231, 76, 60, 0.6); }
-  50% { box-shadow: 0 0 16px rgba(231, 76, 60, 0.8); }
-  100% { box-shadow: 0 0 8px rgba(231, 76, 60, 0.6); }
-}
-
-/* Prediction Overlay */
-.cell-predicted {
-  position: absolute;
-  inset: 0;
-  background-color: rgba(241, 196, 15, 0.6); /* Yellow overlay */
-  pointer-events: none;
-  animation: pulse-pred 1.5s infinite;
-}
-
-.cell-predicted-high {
-  background-color: rgba(231, 76, 60, 0.6); /* Red tint */
-}
-
-@keyframes pulse-pred {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
-
-/* Evacuation Path */
-.path-node {
-  position: relative;
-}
-.path-node::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 6px;
-  height: 6px;
-  background-color: white;
-  border-radius: 50%;
-  box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.8);
-  pointer-events: none;
-  z-index: 5;
+  background-color: #0a0a0a;
 }
 
 /* Custom Scrollbar */
-::-webkit-scrollbar {
+.custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
-::-webkit-scrollbar-track {
-  background: var(--color-bg-main);
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
 }
-::-webkit-scrollbar-thumb {
-  background: var(--color-panel);
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Leaflet Custom Popup for Dark Mode */
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: #111111 !important;
+  color: white !important;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.6) !important;
+}
+
+.leaflet-popup-close-button {
+  color: white !important;
+}
+
+.custom-icon {
+  border-radius: 50%;
+  animation: pulse-marker 2s infinite;
+}
+
+@keyframes pulse-marker {
+  0% { transform: scale(0.95); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+  100% { transform: scale(0.95); opacity: 1; }
 }

@@ -1,121 +1,142 @@
-import React, { useState, useCallback } from 'react';
-import { useSimulation } from './hooks/useSimulation';
-import { Grid } from './components/Grid';
-import { ControlBar } from './components/ControlBar';
-import { CellInfoCard } from './components/CellInfoCard';
-import { Legend } from './components/Legend';
-import { Wind, Radio } from 'lucide-react';
+import React, { useState } from 'react';
+import { useGIS } from './hooks/useGIS';
+import { MapComponent } from './components/MapComponent';
+import { Shield, AlertTriangle, Truck, CheckCircle2, Navigation } from 'lucide-react';
 import './index.css';
 
 function App() {
-  const {
-    grid,
-    predictionGrid,
-    wind,
-    running,
-    isPredicting,
-    predictionSteps,
-    togglePlay,
-    reset,
-    togglePrediction,
-    updatePredictionSteps
-  } = useSimulation();
+  const { shelters, sosAlerts, activeIncidents, resolveSOS } = useGIS();
+  const [selectedSOS, setSelectedSOS] = useState(null);
 
-  const [selectedCell, setSelectedCell] = useState(null);
-  const [hoverCell, setHoverCell] = useState(null);
-  const [evacuationStart, setEvacuationStart] = useState(null);
+  const handleSOSClick = (sos) => {
+    setSelectedSOS(sos);
+  };
 
-  const handleCellClick = useCallback((x, y) => {
-    setSelectedCell({ x, y, state: grid[y][x] });
-  }, [grid]);
-
-  const handleCellHover = useCallback((e, x, y, state) => {
-    if (e === null) {
-      setHoverCell(null);
-    } else {
-      setHoverCell({ x, y, state });
+  const handleDispatch = () => {
+    if (selectedSOS) {
+      resolveSOS(selectedSOS.id);
+      setSelectedSOS(null);
     }
-  }, []);
+  };
 
   return (
-    <div className="relative w-screen h-screen bg-mesh overflow-hidden flex flex-col font-sans select-none">
+    <div className="flex w-screen h-screen bg-[#0a0a0a] text-white overflow-hidden font-sans">
       
-      {/* Background ambient glow based on fire presence */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[rgba(231,76,60,0.05)] via-black to-black z-0 pointer-events-none"></div>
-
-      {/* Top Bar */}
-      <header className="relative z-20 flex justify-between items-center px-8 py-6 w-full max-w-7xl mx-auto">
-        <div className="flex items-center gap-3">
-          <div className="relative flex h-3 w-3">
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${running ? 'bg-green-400' : 'bg-red-400'}`}></span>
-            <span className={`relative inline-flex rounded-full h-3 w-3 ${running ? 'bg-green-500' : 'bg-red-500'}`}></span>
+      {/* Sidebar Dashboard */}
+      <aside className="w-96 bg-[#111111] border-r border-white/10 flex flex-col z-10 shadow-2xl">
+        <div className="p-6 border-b border-white/10">
+          <div className="flex items-center gap-3 mb-2">
+            <Shield className="text-blue-500" size={28} />
+            <h1 className="text-xl font-bold tracking-tight">Response Hub</h1>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white/90">
-            Disaster Digital Twin
-          </h1>
-          <span className="ml-2 px-2 py-0.5 rounded text-xs font-mono bg-white/10 text-white/50 border border-white/5">
-            LIVE
-          </span>
+          <p className="text-sm text-gray-400">Intelligent Disaster Mitigation</p>
         </div>
 
-        {/* Wind Indicator */}
-        <div className="flex items-center gap-3 glass px-4 py-2 rounded-full">
-          <Wind size={18} className="text-white/70" />
-          <span className="text-sm font-medium text-white/80">Wind Direction:</span>
-          <span className="text-base font-bold text-[var(--color-safe)] min-w-[2ch]">{wind}</span>
-        </div>
-      </header>
+        <div className="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-6">
+          
+          {/* Metrics */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+              <div className="text-xs text-gray-400 uppercase font-semibold mb-1">Active Alerts</div>
+              <div className="text-3xl font-bold text-red-500">{activeIncidents}</div>
+            </div>
+            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+              <div className="text-xs text-gray-400 uppercase font-semibold mb-1">Safe Shelters</div>
+              <div className="text-3xl font-bold text-green-500">{shelters.length}</div>
+            </div>
+          </div>
 
-      {/* Main Grid Area */}
-      <main className="flex-1 flex flex-col items-center justify-center relative z-10 pb-32 pt-8">
-        <Grid 
-          grid={grid}
-          predictionGrid={predictionGrid}
-          onCellClick={handleCellClick}
-          onCellHover={handleCellHover}
-          evacuationStart={evacuationStart}
+          {/* Active Incident Feed */}
+          <div>
+            <h2 className="text-sm uppercase font-bold text-gray-400 mb-3 flex items-center gap-2">
+              <AlertTriangle size={16} /> Live Incident Feed
+            </h2>
+            <div className="space-y-3">
+              {sosAlerts.slice().reverse().map(sos => (
+                <div 
+                  key={sos.id}
+                  onClick={() => handleSOSClick(sos)}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all hover:bg-white/5 \${
+                    selectedSOS?.id === sos.id ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 bg-black/20'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="font-semibold text-sm">{sos.type}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold \${
+                      sos.status === 'Dispatched' ? 'bg-blue-500/20 text-blue-400' :
+                      sos.priority === 'Critical' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                      {sos.status === 'Dispatched' ? 'RESOLVED' : sos.priority}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500 font-mono">
+                    Lat: {sos.lat.toFixed(4)}, Lng: {sos.lng.toFixed(4)}
+                  </div>
+                </div>
+              ))}
+              {sosAlerts.length === 0 && (
+                <div className="text-sm text-gray-500 text-center py-4">No active incidents.</div>
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Dispatch Action Area */}
+        <div className="p-6 border-t border-white/10 bg-black/40">
+          <h3 className="text-sm font-semibold text-gray-300 mb-3">Action Center</h3>
+          {selectedSOS ? (
+            selectedSOS.status === 'Pending' ? (
+              <button 
+                onClick={handleDispatch}
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all"
+              >
+                <Truck size={18} />
+                Dispatch Nearest Rescue
+              </button>
+            ) : (
+              <button disabled className="w-full bg-green-900/50 text-green-500 font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 border border-green-500/30">
+                <CheckCircle2 size={18} />
+                Rescue Dispatched
+              </button>
+            )
+          ) : (
+            <div className="text-sm text-gray-500 flex items-center gap-2 bg-white/5 p-3 rounded-lg border border-white/5">
+              <Navigation size={16} /> Select an incident to dispatch rescue teams.
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Map Area */}
+      <main className="flex-1 relative">
+        <MapComponent 
+          shelters={shelters} 
+          sosAlerts={sosAlerts} 
+          selectedSOS={selectedSOS}
+          onSOSClick={handleSOSClick}
         />
-
-        {/* Tooltip on hover */}
-        {hoverCell && !selectedCell && (
-          <div className="fixed pointer-events-none glass text-white text-xs px-3 py-2 rounded-lg border border-white/10 shadow-2xl z-50 font-mono flex items-center gap-2 transform -translate-x-1/2 -translate-y-[150%]"
-               style={{
-                 left: '50%',
-                 top: '15%'
-               }}
-          >
-             <Radio size={12} className="text-[var(--color-affected)] animate-pulse" />
-             [{hoverCell.x}, {hoverCell.y}] 
-             <span className="ml-2 text-white/60">
-                {hoverCell.state === 0 ? 'Safe' : hoverCell.state === 1 ? 'Affected' : hoverCell.state === 2 ? 'Burning' : 'Destroyed'}
-             </span>
+        
+        {/* Floating Legend on Map */}
+        <div className="absolute top-6 right-6 z-[400] bg-[#111] border border-white/10 rounded-xl p-4 shadow-2xl backdrop-blur-md bg-opacity-80">
+          <h4 className="text-xs font-bold uppercase text-gray-400 mb-3">Map Legend</h4>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-[#2ecc71] border border-white shadow-[0_0_8px_#2ecc71]"></div> Safe Shelter Base
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-[#f1c40f] border border-white shadow-[0_0_8px_#f1c40f]"></div> Pending Incident
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-[#e74c3c] border border-white shadow-[0_0_8px_#e74c3c]"></div> Critical Incident
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-[#3498db] border border-white shadow-[0_0_8px_#3498db]"></div> Dispatched Route
+            </div>
           </div>
-        )}
-
+        </div>
       </main>
 
-      {/* UI Overlays */}
-      <CellInfoCard 
-        cell={selectedCell} 
-        close={() => setSelectedCell(null)} 
-        setEvacuationStart={(start) => {
-          setEvacuationStart(start);
-          setSelectedCell(null);
-        }}
-      />
-
-      <Legend />
-
-      <ControlBar 
-        running={running}
-        togglePlay={togglePlay}
-        reset={reset}
-        isPredicting={isPredicting}
-        togglePrediction={togglePrediction}
-        predictionSteps={predictionSteps}
-        updatePredictionSteps={updatePredictionSteps}
-      />
-      
     </div>
   );
 }

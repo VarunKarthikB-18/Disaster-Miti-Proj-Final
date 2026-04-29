@@ -2,7 +2,7 @@ import asyncio
 import json
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from simulation import DisasterSimulation
+from gis_engine import GISEngine
 
 app = FastAPI()
 
@@ -14,17 +14,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-simulation = DisasterSimulation(size=40)
+engine = GISEngine()
 clients = []
 
 async def simulation_loop():
     while True:
-        if simulation.running:
-            simulation.step()
-            state = simulation.get_state()
+        if engine.running:
+            engine.step()
+            state = engine.get_state()
             state["type"] = "STATE_UPDATE"
             
-            # Broadcast to all connected clients
             disconnected = []
             for client in clients:
                 try:
@@ -35,19 +34,18 @@ async def simulation_loop():
             for client in disconnected:
                 clients.remove(client)
                 
-        await asyncio.sleep(1) # 1 tick per second
+        await asyncio.sleep(2) # 2 seconds tick for map updates
 
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(simulation_loop())
 
-@app.websocket("/ws/simulation")
+@app.websocket("/ws/gis")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     clients.append(websocket)
     
-    # Send initial state
-    init_state = simulation.get_state()
+    init_state = engine.get_state()
     init_state["type"] = "STATE_UPDATE"
     await websocket.send_text(json.dumps(init_state))
     
@@ -56,25 +54,12 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
             message = json.loads(data)
             
-            if message.get("action") == "toggle_play":
-                simulation.running = not simulation.running
-                state = simulation.get_state()
+            if message.get("action") == "resolve_sos":
+                sos_id = message.get("sos_id")
+                engine.resolve_sos(sos_id)
+                state = engine.get_state()
                 state["type"] = "STATE_UPDATE"
                 await websocket.send_text(json.dumps(state))
-                
-            elif message.get("action") == "reset":
-                simulation.reset()
-                state = simulation.get_state()
-                state["type"] = "STATE_UPDATE"
-                await websocket.send_text(json.dumps(state))
-                
-            elif message.get("action") == "predict":
-                steps = message.get("steps", 30)
-                prediction_grid = simulation.predict(steps=steps)
-                await websocket.send_text(json.dumps({
-                    "type": "PREDICTION_RESULT",
-                    "grid": prediction_grid
-                }))
                 
     except WebSocketDisconnect:
         if websocket in clients:
