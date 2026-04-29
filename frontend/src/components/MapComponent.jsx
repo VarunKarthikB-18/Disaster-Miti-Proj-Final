@@ -1,5 +1,5 @@
-import React, { useMemo, useEffect } from 'react';
-import { MapContainer, TileLayer, Popup, Polyline, useMap, CircleMarker } from 'react-leaflet';
+import React, { useMemo, useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Popup, Polyline, useMap, CircleMarker, LayersControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 function ChangeView({ center }) {
@@ -12,15 +12,18 @@ function ChangeView({ center }) {
 
 export function MapComponent({ shelters, sosAlerts, selectedSOS, selectedShelter, onSOSClick, onShelterClick, userLocation }) {
   const center = userLocation || [20.5937, 78.9629]; // Default India
+  const [sosRoute, setSosRoute] = useState(null);
+  const [shelterRoute, setShelterRoute] = useState(null);
 
-  // Find nearest shelter for the selected SOS to draw a dispatch route
-  const activeRoute = useMemo(() => {
-    if (!selectedSOS) return null;
+  // Fetch street routing for SOS Dispatch
+  useEffect(() => {
+    if (!selectedSOS || shelters.length === 0) {
+      setSosRoute(null);
+      return;
+    }
     
-    // Simple distance calculation
     let nearest = shelters[0];
     let minDistance = Infinity;
-    
     shelters.forEach(s => {
       const dist = Math.sqrt(Math.pow(s.lat - selectedSOS.lat, 2) + Math.pow(s.lng - selectedSOS.lng, 2));
       if (dist < minDistance) {
@@ -29,21 +32,40 @@ export function MapComponent({ shelters, sosAlerts, selectedSOS, selectedShelter
       }
     });
 
-    if (nearest) {
-      return [
-        [nearest.lat, nearest.lng],
-        [selectedSOS.lat, selectedSOS.lng]
-      ];
-    }
-    return null;
+    fetch(`https://router.project-osrm.org/route/v1/driving/${nearest.lng},${nearest.lat};${selectedSOS.lng},${selectedSOS.lat}?geometries=geojson`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.routes && data.routes[0]) {
+          // OSRM returns [lon, lat], Leaflet needs [lat, lon]
+          const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+          setSosRoute(coords);
+        }
+      })
+      .catch(err => {
+        console.error("Routing error", err);
+        setSosRoute([[nearest.lat, nearest.lng], [selectedSOS.lat, selectedSOS.lng]]);
+      });
   }, [selectedSOS, shelters]);
 
-  const activeRouteToShelter = useMemo(() => {
-    if (!selectedShelter || !userLocation) return null;
-    return [
-      userLocation,
-      [selectedShelter.lat, selectedShelter.lng]
-    ];
+  // Fetch street routing for Evacuation to Shelter
+  useEffect(() => {
+    if (!selectedShelter || !userLocation) {
+      setShelterRoute(null);
+      return;
+    }
+
+    fetch(`https://router.project-osrm.org/route/v1/driving/${userLocation[1]},${userLocation[0]};${selectedShelter.lng},${selectedShelter.lat}?geometries=geojson`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.routes && data.routes[0]) {
+          const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+          setShelterRoute(coords);
+        }
+      })
+      .catch(err => {
+        console.error("Routing error", err);
+        setShelterRoute([userLocation, [selectedShelter.lat, selectedShelter.lng]]);
+      });
   }, [selectedShelter, userLocation]);
 
   return (
@@ -55,10 +77,27 @@ export function MapComponent({ shelters, sosAlerts, selectedSOS, selectedShelter
         zoomControl={false}
       >
         <ChangeView center={center} />
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        />
+        
+        <LayersControl position="topright">
+          <LayersControl.BaseLayer checked name="Dark Dashboard">
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Street View">
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Satellite View">
+            <TileLayer
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
 
         {/* Shelters */}
         {shelters.map(shelter => (
@@ -138,24 +177,24 @@ export function MapComponent({ shelters, sosAlerts, selectedSOS, selectedShelter
         })}
 
         {/* Dispatch Route to SOS */}
-        {activeRoute && (
+        {sosRoute && (
           <Polyline 
-            positions={activeRoute} 
+            positions={sosRoute} 
             color="#3498db" 
-            weight={4} 
+            weight={5} 
             dashArray="10, 10" 
-            className="animate-pulse"
+            className="animate-pulse shadow-xl"
           />
         )}
 
         {/* Escape Route to Shelter */}
-        {activeRouteToShelter && (
+        {shelterRoute && (
           <Polyline 
-            positions={activeRouteToShelter} 
+            positions={shelterRoute} 
             color="#2ecc71" 
-            weight={4} 
+            weight={5} 
             dashArray="10, 10" 
-            className="animate-pulse"
+            className="animate-pulse shadow-xl"
           />
         )}
       </MapContainer>
