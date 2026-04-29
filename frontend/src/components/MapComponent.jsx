@@ -1,31 +1,6 @@
 import React, { useMemo, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import { MapContainer, TileLayer, Popup, Polyline, useMap, CircleMarker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-
-// Fix Leaflet's default icon issue in React
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-// Custom Icons
-const createCustomIcon = (color) => {
-  return new L.DivIcon({
-    className: 'custom-icon',
-    html: `<div style="background-color: ${color}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px ${color};"></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8]
-  });
-};
-
-const shelterIcon = createCustomIcon('#2ecc71');
-const sosIconHigh = createCustomIcon('#e74c3c');
-const sosIconMed = createCustomIcon('#f1c40f');
-const sosIconDispatched = createCustomIcon('#3498db');
-const userIcon = createCustomIcon('#9b59b6');
 
 function ChangeView({ center }) {
   const map = useMap();
@@ -79,10 +54,11 @@ export function MapComponent({ shelters, sosAlerts, selectedSOS, onSOSClick, use
 
         {/* Shelters */}
         {shelters.map(shelter => (
-          <Marker 
+          <CircleMarker 
             key={shelter.id} 
-            position={[shelter.lat, shelter.lng]} 
-            icon={shelterIcon}
+            center={[shelter.lat, shelter.lng]} 
+            radius={8}
+            pathOptions={{ color: '#ffffff', fillColor: '#2ecc71', fillOpacity: 0.9, weight: 2 }}
           >
             <Popup className="custom-popup">
               <div className="font-sans text-sm p-1">
@@ -104,32 +80,39 @@ export function MapComponent({ shelters, sosAlerts, selectedSOS, onSOSClick, use
                 </div>
               </div>
             </Popup>
-          </Marker>
+          </CircleMarker>
         ))}
 
         {/* User Location */}
         {userLocation && (
-          <Marker position={userLocation} icon={userIcon}>
+          <CircleMarker 
+            center={userLocation} 
+            radius={10}
+            pathOptions={{ color: '#ffffff', fillColor: '#9b59b6', fillOpacity: 1, weight: 3 }}
+            className="user-location-pulse"
+          >
             <Popup className="custom-popup">
               <div className="font-bold text-sm">Your Location</div>
             </Popup>
-          </Marker>
+          </CircleMarker>
         )}
 
         {/* SOS Alerts */}
         {sosAlerts.map(sos => {
-          let icon = sosIconMed;
-          if (sos.status === 'Dispatched') icon = sosIconDispatched;
-          else if (sos.priority === 'High' || sos.priority === 'Critical') icon = sosIconHigh;
+          let fillColor = '#f1c40f'; // Med
+          if (sos.status === 'Dispatched') fillColor = '#3498db';
+          else if (sos.priority === 'High' || sos.priority === 'Critical') fillColor = '#e74c3c';
 
           return (
-            <Marker 
+            <CircleMarker 
               key={sos.id} 
-              position={[sos.lat, sos.lng]} 
-              icon={icon}
+              center={[sos.lat, sos.lng]} 
+              radius={7}
+              pathOptions={{ color: '#ffffff', fillColor: fillColor, fillOpacity: 0.9, weight: 2 }}
               eventHandlers={{
                 click: () => onSOSClick(sos),
               }}
+              className="sos-marker-pulse"
             >
               <Popup className="custom-popup">
                 <div className="font-sans p-1">
@@ -139,7 +122,7 @@ export function MapComponent({ shelters, sosAlerts, selectedSOS, onSOSClick, use
                   <div className="text-xs text-gray-500">Status: {sos.status}</div>
                 </div>
               </Popup>
-            </Marker>
+            </CircleMarker>
           );
         })}
 

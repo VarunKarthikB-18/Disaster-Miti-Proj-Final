@@ -40,13 +40,23 @@ body {
   color: white !important;
 }
 
-.custom-icon {
-  border-radius: 50%;
-  animation: pulse-marker 2s infinite;
+/* Leaflet SVG marker pulsing */
+.user-location-pulse {
+  animation: pulse-svg 2s infinite;
 }
 
-@keyframes pulse-marker {
+.sos-marker-pulse {
+  animation: pulse-svg-fast 1.5s infinite;
+}
+
+@keyframes pulse-svg {
+  0% { transform: scale(0.95); stroke-width: 2px; }
+  50% { transform: scale(1.1); stroke-width: 4px; }
+  100% { transform: scale(0.95); stroke-width: 2px; }
+}
+
+@keyframes pulse-svg-fast {
   0% { transform: scale(0.95); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 0.8; }
   100% { transform: scale(0.95); opacity: 1; }
 }
