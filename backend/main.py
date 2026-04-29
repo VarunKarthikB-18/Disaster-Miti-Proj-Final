@@ -1,9 +1,13 @@
 import asyncio
 import json
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from gis_engine import GISEngine
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -61,20 +65,36 @@ Always prioritize safety. Be calm and reassuring."""
 async def chat_endpoint(chat: ChatMessage):
     msg = chat.message.strip()
     
-    # If API key is provided, use Gemini
-    if chat.api_key:
+    # Use provided key or fall back to env key
+    api_key = chat.api_key or os.getenv("GEMINI_API_KEY", "")
+    
+    # If API key is available, use Gemini
+    if api_key:
         try:
             from google import genai
-            client = genai.Client(api_key=chat.api_key)
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=[
-                    {"role": "user", "parts": [{"text": SYSTEM_PROMPT + "\n\nUser question: " + msg}]}
-                ]
-            )
-            return {"reply": response.text}
+            client = genai.Client(api_key=api_key)
+            
+            # Try models in order of preference
+            models = ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash"]
+            last_error = None
+            for model in models:
+                try:
+                    response = client.models.generate_content(
+                        model=model,
+                        contents=[
+                            {"role": "user", "parts": [{"text": SYSTEM_PROMPT + "\n\nUser question: " + msg}]}
+                        ]
+                    )
+                    return {"reply": response.text}
+                except Exception as model_err:
+                    last_error = model_err
+                    continue
+            
+            # All models failed — fall through to keyword engine
+            pass
         except Exception as e:
-            return {"reply": f"AI Error: {str(e)}. Please check your API key."}
+            # Fall through to keyword engine
+            pass
     
     # Fallback: smart keyword matching
     msg_lower = msg.lower()
