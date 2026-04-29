@@ -23,6 +23,7 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
 function App() {
   const { shelters, sosAlerts, activeIncidents, resolveSOS, setLocation, reportSOS } = useGIS();
   const [selectedSOS, setSelectedSOS] = useState(null);
+  const [selectedShelter, setSelectedShelter] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
 
@@ -53,6 +54,12 @@ function App() {
 
   const handleSOSClick = (sos) => {
     setSelectedSOS(sos);
+    setSelectedShelter(null);
+  };
+
+  const handleShelterClick = (shelter) => {
+    setSelectedShelter(shelter);
+    setSelectedSOS(null);
   };
 
   const handleDispatch = () => {
@@ -103,7 +110,13 @@ function App() {
                   }))
                   .sort((a, b) => a.distance - b.distance)
                   .map(shelter => (
-                    <div key={shelter.id} className="p-3 rounded-xl border border-white/10 bg-black/20">
+                    <div 
+                      key={shelter.id} 
+                      onClick={() => handleShelterClick(shelter)}
+                      className={`p-3 rounded-xl border cursor-pointer transition-all hover:bg-white/5 ${
+                        selectedShelter?.id === shelter.id ? 'border-green-500 bg-green-500/10' : 'border-white/10 bg-black/20'
+                      }`}
+                    >
                       <div className="flex justify-between items-center mb-1">
                         <span className="font-semibold text-sm text-green-400">{shelter.name}</span>
                         <span className="text-xs font-mono text-gray-400">{shelter.distance.toFixed(1)} km away</span>
@@ -111,6 +124,11 @@ function App() {
                       <div className="text-xs text-gray-500">
                         Capacity: {shelter.current_occupancy} / {shelter.capacity} people
                       </div>
+                      {selectedShelter?.id === shelter.id && (
+                        <div className="mt-2 text-xs text-green-400 flex items-center gap-1 font-bold">
+                          <Navigation size={12} /> Directions highlighted on map
+                        </div>
+                      )}
                     </div>
                   ))}
               </div>
@@ -203,7 +221,9 @@ function App() {
           shelters={shelters} 
           sosAlerts={sosAlerts} 
           selectedSOS={selectedSOS}
+          selectedShelter={selectedShelter}
           onSOSClick={handleSOSClick}
+          onShelterClick={handleShelterClick}
           userLocation={userLocation}
         />
         

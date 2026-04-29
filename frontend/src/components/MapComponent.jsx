@@ -10,7 +10,7 @@ function ChangeView({ center }) {
   return null;
 }
 
-export function MapComponent({ shelters, sosAlerts, selectedSOS, onSOSClick, userLocation }) {
+export function MapComponent({ shelters, sosAlerts, selectedSOS, selectedShelter, onSOSClick, onShelterClick, userLocation }) {
   const center = userLocation || [20.5937, 78.9629]; // Default India
 
   // Find nearest shelter for the selected SOS to draw a dispatch route
@@ -38,6 +38,14 @@ export function MapComponent({ shelters, sosAlerts, selectedSOS, onSOSClick, use
     return null;
   }, [selectedSOS, shelters]);
 
+  const activeRouteToShelter = useMemo(() => {
+    if (!selectedShelter || !userLocation) return null;
+    return [
+      userLocation,
+      [selectedShelter.lat, selectedShelter.lng]
+    ];
+  }, [selectedShelter, userLocation]);
+
   return (
     <div className="w-full h-full relative z-0">
       <MapContainer 
@@ -59,6 +67,9 @@ export function MapComponent({ shelters, sosAlerts, selectedSOS, onSOSClick, use
             center={[shelter.lat, shelter.lng]} 
             radius={8}
             pathOptions={{ color: '#ffffff', fillColor: '#2ecc71', fillOpacity: 0.9, weight: 2 }}
+            eventHandlers={{
+              click: () => onShelterClick(shelter),
+            }}
           >
             <Popup className="custom-popup">
               <div className="font-sans text-sm p-1">
@@ -126,11 +137,22 @@ export function MapComponent({ shelters, sosAlerts, selectedSOS, onSOSClick, use
           );
         })}
 
-        {/* Dispatch Route */}
+        {/* Dispatch Route to SOS */}
         {activeRoute && (
           <Polyline 
             positions={activeRoute} 
             color="#3498db" 
+            weight={4} 
+            dashArray="10, 10" 
+            className="animate-pulse"
+          />
+        )}
+
+        {/* Escape Route to Shelter */}
+        {activeRouteToShelter && (
+          <Polyline 
+            positions={activeRouteToShelter} 
+            color="#2ecc71" 
             weight={4} 
             dashArray="10, 10" 
             className="animate-pulse"
