@@ -50,13 +50,13 @@ body {
 }
 
 @keyframes pulse-svg {
-  0% { transform: scale(0.95); stroke-width: 2px; }
-  50% { transform: scale(1.1); stroke-width: 4px; }
-  100% { transform: scale(0.95); stroke-width: 2px; }
+  0% { stroke-width: 2px; stroke-opacity: 1; }
+  50% { stroke-width: 8px; stroke-opacity: 0.3; }
+  100% { stroke-width: 2px; stroke-opacity: 1; }
 }
 
 @keyframes pulse-svg-fast {
-  0% { transform: scale(0.95); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.8; }
-  100% { transform: scale(0.95); opacity: 1; }
+  0% { opacity: 1; stroke-width: 2px; stroke-opacity: 1; }
+  50% { opacity: 0.7; stroke-width: 6px; stroke-opacity: 0.5; }
+  100% { opacity: 1; stroke-width: 2px; stroke-opacity: 1; }
 }
