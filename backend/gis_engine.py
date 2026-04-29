@@ -9,42 +9,34 @@ CENTER_LNG = -122.4194
 
 class GISEngine:
     def __init__(self):
-        self.shelters = [
-            {
-                "id": str(uuid.uuid4()),
-                "name": "Central Relief Base",
-                "lat": 37.7749,
-                "lng": -122.4194,
-                "capacity": 500,
-                "current_occupancy": 120,
-                "resources": {"food": 85, "water": 90, "medical": 70} # Percentages
-            },
-            {
-                "id": str(uuid.uuid4()),
-                "name": "North District Shelter",
-                "lat": 37.8044,
-                "lng": -122.4220,
-                "capacity": 300,
-                "current_occupancy": 250,
-                "resources": {"food": 40, "water": 50, "medical": 30}
-            },
-            {
-                "id": str(uuid.uuid4()),
-                "name": "South Safe Zone",
-                "lat": 37.7510,
-                "lng": -122.4080,
-                "capacity": 400,
-                "current_occupancy": 50,
-                "resources": {"food": 95, "water": 95, "medical": 90}
-            }
-        ]
-        
+        self.center_lat = 20.5937 # Default India
+        self.center_lng = 78.9629
+        self.shelters = []
         self.sos_alerts = []
-        # Pre-seed with some alerts
-        for _ in range(5):
-            self._generate_sos()
-            
         self.running = True
+        self._init_data()
+
+    def set_center(self, lat, lng):
+        self.center_lat = lat
+        self.center_lng = lng
+        self._init_data()
+
+    def _init_data(self):
+        self.shelters = []
+        self.sos_alerts = []
+        # Generate 3 shelters around center
+        for i in range(3):
+            self.shelters.append({
+                "id": str(uuid.uuid4()),
+                "name": f"Relief Base {['Alpha', 'Beta', 'Gamma'][i]}",
+                "lat": self.center_lat + random.uniform(-0.05, 0.05),
+                "lng": self.center_lng + random.uniform(-0.05, 0.05),
+                "capacity": random.randint(300, 600),
+                "current_occupancy": random.randint(50, 200),
+                "resources": {"food": random.randint(50, 100), "water": random.randint(50, 100), "medical": random.randint(40, 100)}
+            })
+        for _ in range(3):
+            self._generate_sos()
 
     def _generate_sos(self):
         # Generate random point within ~5km radius
@@ -56,8 +48,8 @@ class GISEngine:
         x = w * math.cos(t)
         y = w * math.sin(t)
         
-        new_lat = CENTER_LAT + x
-        new_lng = CENTER_LNG + y / math.cos(CENTER_LAT * math.pi / 180)
+        new_lat = self.center_lat + x
+        new_lng = self.center_lng + y / math.cos(self.center_lat * math.pi / 180)
         
         priorities = ["High", "High", "Critical", "Medium"]
         types = ["Medical Emergency", "Trapped", "Evacuation Request", "Supply Needed"]
@@ -70,6 +62,18 @@ class GISEngine:
             "priority": random.choice(priorities),
             "timestamp": time.time(),
             "status": "Pending"
+        })
+
+    def report_sos(self, lat, lng, emergency_type):
+        self.sos_alerts.append({
+            "id": str(uuid.uuid4()),
+            "lat": lat,
+            "lng": lng,
+            "type": emergency_type,
+            "priority": "Critical",
+            "timestamp": time.time(),
+            "status": "Pending",
+            "is_user": True
         })
 
     def step(self):

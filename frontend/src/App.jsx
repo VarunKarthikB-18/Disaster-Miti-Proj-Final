@@ -1,12 +1,33 @@
 import React, { useState } from 'react';
 import { useGIS } from './hooks/useGIS';
 import { MapComponent } from './components/MapComponent';
-import { Shield, AlertTriangle, Truck, CheckCircle2, Navigation } from 'lucide-react';
+import { Shield, AlertTriangle, Truck, CheckCircle2, Navigation, Crosshair, PhoneCall } from 'lucide-react';
 import './index.css';
 
 function App() {
-  const { shelters, sosAlerts, activeIncidents, resolveSOS } = useGIS();
+  const { shelters, sosAlerts, activeIncidents, resolveSOS, setLocation, reportSOS } = useGIS();
   const [selectedSOS, setSelectedSOS] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [isLocating, setIsLocating] = useState(false);
+
+  // Get user location on mount
+  React.useEffect(() => {
+    setIsLocating(true);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setUserLocation([lat, lng]);
+        setLocation(lat, lng);
+        setIsLocating(false);
+      }, (error) => {
+        console.error("Error getting location", error);
+        setIsLocating(false);
+      });
+    } else {
+      setIsLocating(false);
+    }
+  }, [setLocation]);
 
   const handleSOSClick = (sos) => {
     setSelectedSOS(sos);
@@ -85,26 +106,44 @@ function App() {
         {/* Dispatch Action Area */}
         <div className="p-6 border-t border-white/10 bg-black/40">
           <h3 className="text-sm font-semibold text-gray-300 mb-3">Action Center</h3>
-          {selectedSOS ? (
-            selectedSOS.status === 'Pending' ? (
-              <button 
-                onClick={handleDispatch}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all"
-              >
-                <Truck size={18} />
-                Dispatch Nearest Rescue
-              </button>
+          
+          <div className="space-y-3">
+            {selectedSOS ? (
+              selectedSOS.status === 'Pending' ? (
+                <button 
+                  onClick={handleDispatch}
+                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all"
+                >
+                  <Truck size={18} />
+                  Dispatch Nearest Rescue
+                </button>
+              ) : (
+                <button disabled className="w-full bg-green-900/50 text-green-500 font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 border border-green-500/30">
+                  <CheckCircle2 size={18} />
+                  Rescue Dispatched
+                </button>
+              )
             ) : (
-              <button disabled className="w-full bg-green-900/50 text-green-500 font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 border border-green-500/30">
-                <CheckCircle2 size={18} />
-                Rescue Dispatched
-              </button>
-            )
-          ) : (
-            <div className="text-sm text-gray-500 flex items-center gap-2 bg-white/5 p-3 rounded-lg border border-white/5">
-              <Navigation size={16} /> Select an incident to dispatch rescue teams.
-            </div>
-          )}
+              <div className="text-sm text-gray-500 flex items-center gap-2 bg-white/5 p-3 rounded-lg border border-white/5">
+                <Navigation size={16} /> Select an incident to dispatch rescue teams.
+              </div>
+            )}
+
+            {/* User Report Feature */}
+            <button 
+              onClick={() => {
+                if (userLocation) {
+                  reportSOS(userLocation[0], userLocation[1], "Citizen Distress Call");
+                } else {
+                  alert("Please allow location access to report an emergency.");
+                }
+              }}
+              className="w-full bg-red-600/80 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all border border-red-500"
+            >
+              <PhoneCall size={18} />
+              Report Emergency Here
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -115,7 +154,15 @@ function App() {
           sosAlerts={sosAlerts} 
           selectedSOS={selectedSOS}
           onSOSClick={handleSOSClick}
+          userLocation={userLocation}
         />
+        
+        {/* Locating Toast */}
+        {isLocating && (
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[400] bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-pulse">
+            <Crosshair size={16} /> Locating your position...
+          </div>
+        )}
         
         {/* Floating Legend on Map */}
         <div className="absolute top-6 right-6 z-[400] bg-[#111] border border-white/10 rounded-xl p-4 shadow-2xl backdrop-blur-md bg-opacity-80">
@@ -132,6 +179,9 @@ function App() {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-[#3498db] border border-white shadow-[0_0_8px_#3498db]"></div> Dispatched Route
+            </div>
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/10">
+              <div className="w-3 h-3 rounded-full bg-[#9b59b6] border border-white shadow-[0_0_8px_#9b59b6]"></div> Your Live Location
             </div>
           </div>
         </div>

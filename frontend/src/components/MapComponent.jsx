@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import React, { useMemo, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -25,9 +25,18 @@ const shelterIcon = createCustomIcon('#2ecc71');
 const sosIconHigh = createCustomIcon('#e74c3c');
 const sosIconMed = createCustomIcon('#f1c40f');
 const sosIconDispatched = createCustomIcon('#3498db');
+const userIcon = createCustomIcon('#9b59b6');
 
-export function MapComponent({ shelters, sosAlerts, selectedSOS, onSOSClick }) {
-  const center = [37.7749, -122.4194]; // SF Center
+function ChangeView({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) map.setView(center, map.getZoom());
+  }, [center, map]);
+  return null;
+}
+
+export function MapComponent({ shelters, sosAlerts, selectedSOS, onSOSClick, userLocation }) {
+  const center = userLocation || [20.5937, 78.9629]; // Default India
 
   // Find nearest shelter for the selected SOS to draw a dispatch route
   const activeRoute = useMemo(() => {
@@ -62,6 +71,7 @@ export function MapComponent({ shelters, sosAlerts, selectedSOS, onSOSClick }) {
         style={{ width: '100%', height: '100%', background: '#0a0a0a' }}
         zoomControl={false}
       >
+        <ChangeView center={center} />
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -96,6 +106,15 @@ export function MapComponent({ shelters, sosAlerts, selectedSOS, onSOSClick }) {
             </Popup>
           </Marker>
         ))}
+
+        {/* User Location */}
+        {userLocation && (
+          <Marker position={userLocation} icon={userIcon}>
+            <Popup className="custom-popup">
+              <div className="font-bold text-sm">Your Location</div>
+            </Popup>
+          </Marker>
+        )}
 
         {/* SOS Alerts */}
         {sosAlerts.map(sos => {

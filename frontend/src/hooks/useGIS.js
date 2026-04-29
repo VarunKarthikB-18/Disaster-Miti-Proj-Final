@@ -25,10 +25,20 @@ export function useGIS() {
     sendJsonMessage({ action: 'resolve_sos', sos_id });
   }, [sendJsonMessage]);
 
+  const setLocation = useCallback((lat, lng) => {
+    sendJsonMessage({ action: 'set_location', lat, lng });
+  }, [sendJsonMessage]);
+
+  const reportSOS = useCallback((lat, lng, emergency_type) => {
+    sendJsonMessage({ action: 'report_sos', lat, lng, emergency_type });
+  }, [sendJsonMessage]);
+
   return {
     shelters,
     sosAlerts,
     activeIncidents,
-    resolveSOS
+    resolveSOS,
+    setLocation,
+    reportSOS
   };
 }

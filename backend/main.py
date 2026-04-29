@@ -61,6 +61,23 @@ async def websocket_endpoint(websocket: WebSocket):
                 state["type"] = "STATE_UPDATE"
                 await websocket.send_text(json.dumps(state))
                 
+            elif message.get("action") == "set_location":
+                lat = message.get("lat")
+                lng = message.get("lng")
+                engine.set_center(lat, lng)
+                state = engine.get_state()
+                state["type"] = "STATE_UPDATE"
+                await websocket.send_text(json.dumps(state))
+                
+            elif message.get("action") == "report_sos":
+                lat = message.get("lat")
+                lng = message.get("lng")
+                emergency_type = message.get("emergency_type")
+                engine.report_sos(lat, lng, emergency_type)
+                state = engine.get_state()
+                state["type"] = "STATE_UPDATE"
+                await websocket.send_text(json.dumps(state))
+                
     except WebSocketDisconnect:
         if websocket in clients:
             clients.remove(websocket)
