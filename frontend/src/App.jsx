@@ -1,8 +1,24 @@
 import React, { useState } from 'react';
 import { useGIS } from './hooks/useGIS';
 import { MapComponent } from './components/MapComponent';
-import { Shield, AlertTriangle, Truck, CheckCircle2, Navigation, Crosshair, PhoneCall } from 'lucide-react';
+import { Chatbot } from './components/Chatbot';
+import { Shield, AlertTriangle, Truck, CheckCircle2, Navigation, Crosshair, PhoneCall, MapPin } from 'lucide-react';
 import './index.css';
+
+// Helper to calculate distance in km
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  var R = 6371; // Radius of the earth in km
+  var dLat = (lat2-lat1) * (Math.PI/180);
+  var dLon = (lon2-lon1) * (Math.PI/180); 
+  var a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+    ; 
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  var d = R * c; // Distance in km
+  return d;
+}
 
 function App() {
   const { shelters, sosAlerts, activeIncidents, resolveSOS, setLocation, reportSOS } = useGIS();
@@ -22,9 +38,15 @@ function App() {
         setIsLocating(false);
       }, (error) => {
         console.error("Error getting location", error);
+        // Fallback to default
+        setUserLocation([20.5937, 78.9629]);
+        setLocation(20.5937, 78.9629);
         setIsLocating(false);
       });
     } else {
+      // Fallback to default
+      setUserLocation([20.5937, 78.9629]);
+      setLocation(20.5937, 78.9629);
       setIsLocating(false);
     }
   }, [setLocation]);
@@ -66,6 +88,34 @@ function App() {
               <div className="text-3xl font-bold text-green-500">{shelters.length}</div>
             </div>
           </div>
+
+          {/* Nearest Rescue Spots */}
+          {userLocation && (
+            <div>
+              <h2 className="text-sm uppercase font-bold text-gray-400 mb-3 flex items-center gap-2">
+                <MapPin size={16} /> Nearest Rescue Spots
+              </h2>
+              <div className="space-y-3">
+                {shelters
+                  .map(s => ({
+                    ...s,
+                    distance: getDistanceFromLatLonInKm(userLocation[0], userLocation[1], s.lat, s.lng)
+                  }))
+                  .sort((a, b) => a.distance - b.distance)
+                  .map(shelter => (
+                    <div key={shelter.id} className="p-3 rounded-xl border border-white/10 bg-black/20">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-semibold text-sm text-green-400">{shelter.name}</span>
+                        <span className="text-xs font-mono text-gray-400">{shelter.distance.toFixed(1)} km away</span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Capacity: {shelter.current_occupancy} / {shelter.capacity} people
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
           {/* Active Incident Feed */}
           <div>
@@ -187,6 +237,7 @@ function App() {
         </div>
       </main>
 
+      <Chatbot />
     </div>
   );
 }
